@@ -1470,6 +1470,51 @@
       background: #f0f9ff;
     }
 
+    .app-quick-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .app-quick-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%);
+      border: 1.5px solid var(--blue-border);
+      color: var(--text-main);
+      transition: transform 0.12s ease, box-shadow 0.15s ease;
+    }
+
+    .app-quick-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .app-quick-title {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.35;
+    }
+
+    .app-quick-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: var(--blue);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
     .timer-overlay {
       position: fixed;
       inset: 0;
@@ -2608,6 +2653,21 @@
           </button>
         </section>
 
+        <!-- 勉強アプリ クイック起動（スプレッドシートのWebアプリを自動表示） -->
+        <section id="homeAppsSection" class="section-card">
+          <div class="section-header" style="margin-bottom: 10px;">
+            <div class="section-title-group">
+              <div class="section-emoji blue" aria-hidden="true">📱</div>
+              <div>
+                <h2 class="section-title">勉強アプリ（ワンタップ起動）</h2>
+                <p class="section-sub">生徒ID・名前が自動で引き継がれます</p>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="openAppsInGuide()">すべて見る</button>
+          </div>
+          <div id="homeAppsGrid" class="app-quick-grid"></div>
+        </section>
+
         <!-- 今日の復習リスト -->
         <section class="section-card">
           <div class="section-header">
@@ -3603,8 +3663,12 @@
     }
 
     function sanitizeUrl(url) {
-      const trimmed = String(url || '').trim();
+      let trimmed = String(url || '').trim();
       if (!trimmed) return '';
+      // https:// が抜けてドメインから書かれている場合も自動補完
+      if (!/^https?:\/\//i.test(trimmed) && /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(trimmed)) {
+        trimmed = 'https://' + trimmed;
+      }
       try {
         const parsed = new URL(trimmed);
         if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
@@ -3614,22 +3678,28 @@
       return '';
     }
 
-    function openHostedApp(rawUrl) {
+    function buildAppLaunchUrl(rawUrl) {
       const safeUrl = sanitizeUrl(rawUrl);
-      if (!safeUrl) {
-        showToast('有効なアプリURLが設定されていません。', 'warn');
-        return;
-      }
+      if (!safeUrl) return '';
       try {
         const u = new URL(safeUrl);
         if (currentUser && currentUser.studentId) {
           u.searchParams.set('studentId', currentUser.studentId);
           u.searchParams.set('studentName', currentUser.name || currentUser.studentId);
         }
-        window.open(u.toString(), '_blank', 'noopener,noreferrer');
+        return u.toString();
       } catch (_) {
-        window.open(safeUrl, '_blank', 'noopener,noreferrer');
+        return safeUrl;
       }
+    }
+
+    function openHostedApp(rawUrl) {
+      const launchUrl = buildAppLaunchUrl(rawUrl);
+      if (!launchUrl) {
+        showToast('有効なアプリURLが設定されていません。', 'warn');
+        return;
+      }
+      window.open(launchUrl, '_blank', 'noopener,noreferrer');
     }
 
     function getSimDateObj() {
@@ -3825,9 +3895,26 @@
         ? raw.yearlyPlan
         : cloneDefaultPlanItems(planCourse);
 
+      const safeRecords = (Array.isArray(raw.records) ? raw.records : fallback.records)
+        .filter(r => r && typeof r === 'object')
+        .map(r => {
+          const fallbackIntervals = (REVIEW_SCHEDULES[r.rating] && REVIEW_SCHEDULES[r.rating].intervals)
+            ? [...REVIEW_SCHEDULES[r.rating].intervals]
+            : [];
+          const intervals = Array.isArray(r.intervals) ? r.intervals : fallbackIntervals;
+          const stepIndex = Number.isFinite(Number(r.stepIndex)) ? Number(r.stepIndex) : 0;
+          const completed = typeof r.completed === 'boolean' ? r.completed : (intervals.length === 0 || stepIndex >= intervals.length);
+          return {
+            ...r,
+            intervals,
+            stepIndex,
+            completed
+          };
+        });
+
       return {
         tasks: Array.isArray(raw.tasks) ? raw.tasks : fallback.tasks,
-        records: Array.isArray(raw.records) ? raw.records : fallback.records,
+        records: safeRecords,
         myMaterials: myMats,
         sharedMaterials: (Array.isArray(raw.sharedMaterials) && raw.sharedMaterials.length > 0)
           ? raw.sharedMaterials
@@ -4157,6 +4244,15 @@
     function openAddTab(mode = 'task') {
       switchTab('add');
       setFormMode(mode);
+    }
+
+    function openAppsInGuide() {
+      filterType = 'Webアプリ';
+      filterSubject = 'すべて';
+      filterLevel = 'すべて';
+      switchTab('guide');
+      switchGuideSubTab('materials');
+      renderMaterials();
     }
 
     function switchGuideSubTab(sub) {
@@ -4507,12 +4603,13 @@
       const rec = state.records.find(r => r.id === recId);
       if (!rec || rec.completed) return;
 
+      const intervals = Array.isArray(rec.intervals) ? rec.intervals : [];
       const today = getSimToday();
-      const nextStep = rec.stepIndex + 1;
+      const nextStep = (Number(rec.stepIndex) || 0) + 1;
       incrementTodayClearCount();
 
-      if (nextStep < rec.intervals.length) {
-        const waitDays = rec.intervals[nextStep];
+      if (nextStep < intervals.length) {
+        const waitDays = intervals[nextStep];
         rec.stepIndex = nextStep;
         rec.nextReviewDate = addDays(today, waitDays);
         renderAll();
@@ -5342,14 +5439,62 @@
         navBadge.classList.add('hidden');
       }
 
-      renderReviewList(dueReviews, today);
-      renderTaskList(today);
-      renderMaterials();
-      renderYearlyGantt();
-      renderRoadmap();
-      renderStudyCalendar();
-      renderAllMaterialsSummary();
-      renderHistory();
+      const safeRun = (fn) => { try { fn(); } catch (e) { console.warn('描画エラー:', e); } };
+      safeRun(() => renderHomeApps());
+      safeRun(() => renderReviewList(dueReviews, today));
+      safeRun(() => renderTaskList(today));
+      safeRun(() => renderMaterials());
+      safeRun(() => renderYearlyGantt());
+      safeRun(() => renderRoadmap());
+      safeRun(() => renderStudyCalendar());
+      safeRun(() => renderAllMaterialsSummary());
+      safeRun(() => renderHistory());
+    }
+
+    function renderHomeApps() {
+      const grid = document.getElementById('homeAppsGrid');
+      const section = document.getElementById('homeAppsSection');
+      if (!grid || !section) return;
+
+      const apps = getAllMaterials().filter(m => !m.isMine && (m.type === 'Webアプリ' || sanitizeUrl(m.url)));
+      if (apps.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-box neutral" style="grid-column: 1 / -1; padding: 14px;">
+            <p class="empty-desc">登録されている勉強アプリがありません。スプレッドシートの「共通教材」シート（C列: Webアプリ / G列: URL）を確認してください。</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = apps.map(app => {
+        const subCls = SUBJECT_CLASS_MAP[app.subject] || 'sub-oth';
+        const launchUrl = buildAppLaunchUrl(app.url);
+        if (launchUrl) {
+          return `
+            <a href="${escapeHtml(launchUrl)}" target="_blank" rel="noopener noreferrer" class="app-quick-card">
+              <div>
+                <div class="badge-row" style="margin-bottom:5px;">
+                  <span class="badge ${subCls}">${escapeHtml(app.subject)}</span>
+                  <span class="badge type-app">📱 アプリ</span>
+                </div>
+                <p class="app-quick-title">${escapeHtml(app.title)}</p>
+              </div>
+              <span class="app-quick-cta">🚀 アプリを開く</span>
+            </a>
+          `;
+        }
+        return `
+          <div class="app-quick-card" style="border-color:var(--amber-border); background:var(--amber-soft);">
+            <div>
+              <div class="badge-row" style="margin-bottom:5px;">
+                <span class="badge ${subCls}">${escapeHtml(app.subject)}</span>
+              </div>
+              <p class="app-quick-title">${escapeHtml(app.title)}</p>
+            </div>
+            <span style="font-size:11px; font-weight:800; color:var(--amber);">⚠️ URL未設定（シートG列を確認）</span>
+          </div>
+        `;
+      }).join('');
     }
 
     function renderReviewList(dueReviews, today) {
@@ -5368,11 +5513,12 @@
 
       container.innerHTML = dueReviews.map(rec => {
         const subCls = SUBJECT_CLASS_MAP[rec.subject] || 'sub-oth';
-        const stepNum = rec.stepIndex + 1;
-        const totalSteps = rec.intervals.length;
+        const intervals = Array.isArray(rec.intervals) ? rec.intervals : [];
+        const stepNum = (Number(rec.stepIndex) || 0) + 1;
+        const totalSteps = Math.max(1, intervals.length);
         const delay = diffDays(rec.nextReviewDate, today);
         const linkedMat = rec.materialId ? getAllMaterials().find(m => m.id === rec.materialId) : null;
-        const safeUrl = linkedMat ? sanitizeUrl(linkedMat.url) : '';
+        const launchUrl = (linkedMat && !linkedMat.isMine) ? buildAppLaunchUrl(linkedMat.url) : '';
 
         return `
           <article class="item-card ${delay > 0 ? 'overdue' : ''}">
@@ -5393,10 +5539,10 @@
               <button type="button" class="btn btn-sky btn-sm" onclick="openStudyTimer({ subject: '${escapeHtml(rec.subject)}', content: '${escapeHtml(rec.content)}', materialId: '${escapeHtml(rec.materialId || '')}' })">
                 ⏱️ 勉強する
               </button>
-              ${safeUrl ? `
-                <button type="button" class="btn btn-sky btn-sm" onclick="openHostedApp('${escapeHtml(safeUrl)}')">
+              ${launchUrl ? `
+                <a href="${escapeHtml(launchUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-sky btn-sm">
                   🚀 アプリを開く
-                </button>
+                </a>
               ` : ''}
               <button type="button" class="btn btn-outline btn-sm" onclick="snoozeReview('${escapeHtml(rec.id)}')">
                 明日へ
@@ -5420,7 +5566,7 @@
         return;
       }
 
-      const sorted = [...state.tasks].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+      const sorted = [...state.tasks].sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
 
       container.innerHTML = sorted.map(task => {
         const subCls = SUBJECT_CLASS_MAP[task.subject] || 'sub-oth';
@@ -5440,7 +5586,7 @@
         }
 
         const linkedMat = task.materialId ? getAllMaterials().find(m => m.id === task.materialId) : null;
-        const safeUrl = linkedMat ? sanitizeUrl(linkedMat.url) : '';
+        const launchUrl = (linkedMat && !linkedMat.isMine) ? buildAppLaunchUrl(linkedMat.url) : '';
 
         return `
           <article class="item-card ${diff < 0 ? 'overdue' : ''}">
@@ -5459,10 +5605,10 @@
               <button type="button" class="btn btn-sky btn-sm" onclick="openStudyTimer({ taskId: '${escapeHtml(task.id)}', subject: '${escapeHtml(task.subject)}', content: '${escapeHtml(task.content)}', materialId: '${escapeHtml(task.materialId || '')}' })">
                 ⏱️ 勉強する
               </button>
-              ${safeUrl ? `
-                <button type="button" class="btn btn-sky btn-sm" onclick="openHostedApp('${escapeHtml(safeUrl)}')">
+              ${launchUrl ? `
+                <a href="${escapeHtml(launchUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-sky btn-sm">
                   🚀 アプリを開く
-                </button>
+                </a>
               ` : ''}
             </div>
           </article>
@@ -5513,7 +5659,7 @@
         const typeCls = m.type === 'Webアプリ' ? 'type-app' : (m.type === 'プリント' ? 'type-print' : 'type-book');
         const typeIcon = m.type === 'Webアプリ' ? '📱' : (m.type === 'プリント' ? '📄' : '📘');
         const lvlCls = m.level === '基礎' ? 'lvl-basic' : (m.level === '応用' ? 'lvl-adv' : 'lvl-std');
-        const safeUrl = (!m.isMine && m.type === 'Webアプリ') ? sanitizeUrl(m.url) : '';
+        const launchUrl = !m.isMine ? buildAppLaunchUrl(m.url) : '';
 
         return `
           <article class="item-card">
@@ -5531,12 +5677,14 @@
             <p class="item-title">${escapeHtml(m.title)}</p>
             <p class="item-desc">${escapeHtml(m.point)}</p>
             <div class="card-actions">
-              ${safeUrl ? `
-                <button type="button" class="btn btn-blue btn-grow" onclick="openHostedApp('${escapeHtml(safeUrl)}')">
+              ${launchUrl ? `
+                <a href="${escapeHtml(launchUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-blue btn-grow">
                   🚀 アプリを開く
-                </button>
-              ` : ''}
-              <button type="button" class="btn ${safeUrl ? 'btn-outline' : 'btn-green btn-grow'}" onclick="openQuickTaskModal('${escapeHtml(m.id)}')">
+                </a>
+              ` : (m.type === 'Webアプリ' ? `
+                <span class="badge badge-overdue" style="padding:8px 10px;">⚠️ URL未設定（シートのG列を確認）</span>
+              ` : '')}
+              <button type="button" class="btn ${launchUrl ? 'btn-outline' : 'btn-green btn-grow'}" onclick="openQuickTaskModal('${escapeHtml(m.id)}')">
                 📝 課題に追加
               </button>
             </div>
@@ -6209,9 +6357,11 @@
 
       container.innerHTML = filteredRecords.map(rec => {
         const subCls = SUBJECT_CLASS_MAP[rec.subject] || 'sub-oth';
-        const statusBadge = rec.completed
+        const intervals = Array.isArray(rec.intervals) ? rec.intervals : [];
+        const stepNum = (Number(rec.stepIndex) || 0) + 1;
+        const statusBadge = (rec.completed || intervals.length === 0)
           ? `<span class="badge badge-done">✅ 復習完了</span>`
-          : `<span class="badge badge-step">次回: ${formatJpDate(rec.nextReviewDate)} (${rec.stepIndex + 1}/${rec.intervals.length}回目)</span>`;
+          : `<span class="badge badge-step">次回: ${formatJpDate(rec.nextReviewDate)} (${stepNum}/${intervals.length}回目)</span>`;
 
         return `
           <article class="item-card">
