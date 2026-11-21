@@ -1518,11 +1518,8 @@
     /* アプリ内Webアプリビューア（戻れない問題解消＆ストップウォッチ自動連動） */
     .app-viewer-overlay {
       position: fixed;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      left: 0;
-      z-index: 9999;
+      inset: 0;
+      z-index: 99999;
       background: #0f172a;
       width: 100%;
       height: 100%;
@@ -1534,7 +1531,7 @@
       top: 0;
       left: 0;
       right: 0;
-      z-index: 10001;
+      z-index: 2147483647;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1544,7 +1541,7 @@
       padding-top: calc(8px + env(safe-area-inset-top, 0px));
       background: linear-gradient(90deg, #1e293b 0%, #0f766e 100%);
       color: #ffffff;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.25);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
     }
 
@@ -1637,18 +1634,44 @@
       left: 0;
       right: 0;
       bottom: 0;
-      z-index: 10000;
-      overflow: auto;
+      width: 100%;
+      overflow: hidden;
       -webkit-overflow-scrolling: touch;
       background: #ffffff;
     }
 
     .app-viewer-iframe {
+      position: absolute;
+      inset: 0;
       display: block;
       width: 100%;
       height: 100%;
       border: none;
       background: #ffffff;
+    }
+
+    /* どの端末でも確実に押せる右下フローティング「戻って記録」ボタン */
+    .app-viewer-float-back {
+      position: fixed;
+      right: 14px;
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      z-index: 2147483647;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 11px 16px;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, #059669, #0d9488);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 800;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.4);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .app-viewer-float-back:hover {
+      background: linear-gradient(135deg, #047857, #0f766e);
     }
 
     .timer-overlay {
@@ -2774,7 +2797,7 @@
         <div class="header-row-top">
           <div class="brand">
             <div class="brand-icon" aria-hidden="true">📘</div>
-            <h1 class="brand-title">スタディ・リマインド</h1>
+            <h1 class="brand-title">スタディ・リマインド <span style="font-size:10px; font-weight:800; color:var(--blue); background:var(--blue-soft); padding:2px 6px; border-radius:999px; vertical-align:middle;">v2.6</span></h1>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
             <div class="clear-counter" style="background:var(--blue-soft); border-color:var(--blue-border); color:var(--blue);" title="今日の合計勉強時間">
@@ -3451,6 +3474,9 @@
     <div class="app-viewer-body">
       <iframe id="appViewerFrame" class="app-viewer-iframe" src="about:blank" allow="autoplay; clipboard-write" title="勉強アプリ画面"></iframe>
     </div>
+    <button type="button" id="appViewerFloatBackBtn" class="app-viewer-float-back" onclick="finishAndCloseAppViewer()">
+      ⬅️ 戻って記録 <span id="appViewerFloatClock">00:00</span>
+    </button>
   </div>
 
   <!-- ==================== モーダル5：勉強終了後のカレンダー記録＆自動復習モーダル ==================== -->
@@ -3929,6 +3955,8 @@
 
       document.getElementById('appViewerTitle').textContent = mat.title;
       document.getElementById('appViewerClock').textContent = '⏱️ 00:00';
+      const floatClockInit = document.getElementById('appViewerFloatClock');
+      if (floatClockInit) floatClockInit.textContent = '00:00';
       document.getElementById('appViewerExtLink').href = launchUrl;
       document.getElementById('appViewerFrame').src = launchUrl;
       document.getElementById('appViewerOverlay').classList.remove('hidden');
@@ -3939,8 +3967,11 @@
       appViewerIntervalId = setInterval(() => {
         if (!appViewerActive) return;
         const sec = Math.max(0, Math.floor((Date.now() - appViewerStartedAt) / 1000));
+        const formatted = formatClockSeconds(sec);
         const clockEl = document.getElementById('appViewerClock');
-        if (clockEl) clockEl.textContent = `⏱️ ${formatClockSeconds(sec)}`;
+        if (clockEl) clockEl.textContent = `⏱️ ${formatted}`;
+        const floatClockEl = document.getElementById('appViewerFloatClock');
+        if (floatClockEl) floatClockEl.textContent = formatted;
       }, 500);
     }
 
