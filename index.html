@@ -1515,6 +1515,115 @@
       font-weight: 800;
     }
 
+    /* アプリ内Webアプリビューア（戻れない問題解消＆ストップウォッチ自動連動） */
+    .app-viewer-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: #0f172a;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    .app-viewer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      padding-top: calc(8px + env(safe-area-inset-top, 0px));
+      background: linear-gradient(90deg, #1e293b 0%, #0f766e 100%);
+      color: #ffffff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      flex-shrink: 0;
+    }
+
+    .app-viewer-back-btn {
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: #10b981;
+      color: #ffffff;
+      font-size: 12.5px;
+      font-weight: 800;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+    }
+
+    .app-viewer-back-btn:hover {
+      background: #059669;
+    }
+
+    .app-viewer-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .app-viewer-title {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #f8fafc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-viewer-clock {
+      padding: 3px 9px;
+      border-radius: var(--radius-full);
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      font-size: 12px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: #6ee7b7;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .app-viewer-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .app-viewer-ext-btn {
+      padding: 6px 9px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.14);
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .app-viewer-cancel-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.14);
+      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app-viewer-iframe {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #ffffff;
+    }
+
     .timer-overlay {
       position: fixed;
       inset: 0;
@@ -1760,6 +1869,39 @@
       color: #e2e8f0;
       font-size: 13px;
       font-weight: 700;
+    }
+
+    .timer-app-launch-wrap {
+      margin-bottom: 14px;
+    }
+
+    .timer-app-launch-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #ffffff;
+      font-size: 13.5px;
+      font-weight: 800;
+      border: 1px solid rgba(186, 230, 253, 0.45);
+      box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+      text-align: center;
+    }
+
+    .timer-app-launch-btn:hover {
+      filter: brightness(1.06);
+    }
+
+    .timer-app-hint {
+      margin: 5px 0 0;
+      font-size: 11px;
+      color: #bae6fd;
+      text-align: center;
+      font-weight: 600;
     }
 
     .timer-test-row {
@@ -3212,6 +3354,9 @@
               placeholder="例：20、22-25（任意）"
             >
           </div>
+          <button type="button" id="timerLaunchAppBtn" class="btn btn-blue btn-sm hidden" style="width:100%;" onclick="launchSelectedTimerApp()">
+            🚀 このアプリを開いて計測スタート
+          </button>
         </div>
       </div>
 
@@ -3259,6 +3404,24 @@
         <button type="button" class="timer-mini-link" onclick="startQuickTestTimer()">10秒テスト</button>
       </div>
     </div>
+  </div>
+
+  <!-- ==================== オーバーレイ：アプリ内Webアプリビューア（戻る＆自動計測バー付き） ==================== -->
+  <div id="appViewerOverlay" class="app-viewer-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="appViewerTitle">
+    <div class="app-viewer-bar">
+      <button type="button" class="app-viewer-back-btn" onclick="finishAndCloseAppViewer()">
+        ⬅️ 戻って記録
+      </button>
+      <div class="app-viewer-meta">
+        <span id="appViewerTitle" class="app-viewer-title">勉強アプリ</span>
+        <span id="appViewerClock" class="app-viewer-clock">⏱️ 00:00</span>
+      </div>
+      <div class="app-viewer-right">
+        <a id="appViewerExtLink" href="#" target="_blank" rel="noopener noreferrer" class="app-viewer-ext-btn" title="うまく表示されないときは別タブで開く">↗ 別タブ</a>
+        <button type="button" class="app-viewer-cancel-btn" onclick="cancelAndCloseAppViewer()" title="記録せず閉じる">✕</button>
+      </div>
+    </div>
+    <iframe id="appViewerFrame" class="app-viewer-iframe" src="about:blank" allow="autoplay; clipboard-write" title="勉強アプリ画面"></iframe>
   </div>
 
   <!-- ==================== モーダル5：勉強モード終了後の記録＆理解度選択 ==================== -->
@@ -3340,7 +3503,10 @@
       </div>
 
       <div class="modal-footer" style="justify-content: space-between;">
-        <button type="button" class="btn btn-sky btn-sm" onclick="openEditFromPlanModal()">✏️ 教材・期間を編集</button>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-sky btn-sm" onclick="openEditFromPlanModal()">✏️ 編集</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="requestDeleteFromPlanModal()">🗑️ 削除</button>
+        </div>
         <button type="button" class="btn btn-outline btn-sm" onclick="closePlanModal()">閉じる</button>
       </div>
     </div>
@@ -3625,6 +3791,7 @@
     let planFilterSubject = 'すべて';
     let activePlanItemId = null;
     let editingPlanItemId = null;
+    let remotePlanTemplates = null;
 
     let openSeasonIds = new Set();
     let evaluatingTaskId = null;
@@ -3648,6 +3815,13 @@
     let wakeLockSentinel = null;
     let alarmIntervalId = null;
     let audioCtx = null;
+
+    // アプリ内Webアプリビューア（ストップウォッチ自動連動）状態
+    let appViewerActive = false;
+    let appViewerStartedAt = 0;
+    let appViewerIntervalId = null;
+    let appViewerMaterial = null;
+    let appViewerLinkedTaskId = null;
 
     function isDemoMode() {
       return !GAS_API_URL || GAS_API_URL.trim() === '';
@@ -3700,6 +3874,96 @@
         return;
       }
       window.open(launchUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    function launchWebAppWithTimer(materialId, linkedTaskId = null) {
+      const mat = getAllMaterials().find(m => m.id === materialId);
+      if (!mat) {
+        showToast('アプリ情報が見つかりません。', 'warn');
+        return;
+      }
+      const launchUrl = buildAppLaunchUrl(mat.url);
+      if (!launchUrl) {
+        showToast('有効なアプリURLが設定されていません（シートG列を確認）', 'warn');
+        return;
+      }
+
+      if (appViewerIntervalId) {
+        clearInterval(appViewerIntervalId);
+        appViewerIntervalId = null;
+      }
+
+      appViewerMaterial = mat;
+      appViewerLinkedTaskId = linkedTaskId || null;
+      appViewerActive = true;
+      appViewerStartedAt = Date.now();
+
+      document.getElementById('appViewerTitle').textContent = mat.title;
+      document.getElementById('appViewerClock').textContent = '⏱️ 00:00';
+      document.getElementById('appViewerExtLink').href = launchUrl;
+      document.getElementById('appViewerFrame').src = launchUrl;
+      document.getElementById('appViewerOverlay').classList.remove('hidden');
+
+      acquireWakeLock();
+
+      appViewerIntervalId = setInterval(() => {
+        if (!appViewerActive) return;
+        const sec = Math.max(0, Math.floor((Date.now() - appViewerStartedAt) / 1000));
+        const clockEl = document.getElementById('appViewerClock');
+        if (clockEl) clockEl.textContent = `⏱️ ${formatClockSeconds(sec)}`;
+      }, 500);
+    }
+
+    function finishAndCloseAppViewer() {
+      if (!appViewerActive) return;
+      const elapsedSec = Math.max(1, Math.floor((Date.now() - appViewerStartedAt) / 1000));
+      const mat = appViewerMaterial;
+      const linkedTaskId = appViewerLinkedTaskId;
+
+      closeAppViewerShell();
+
+      const recordedMinutes = Math.max(1, Math.round(elapsedSec / 60));
+      const subject = (mat && SUBJECTS.includes(mat.subject)) ? mat.subject : 'その他';
+      const content = mat ? mat.title : '勉強アプリ';
+
+      timerLinkedTaskId = linkedTaskId;
+      document.getElementById('timerDoneSummary').textContent =
+        `今回のアプリ学習時間：${recordedMinutes}分（${formatClockSeconds(elapsedSec)}）をカレンダーに自動記録します！`;
+      document.getElementById('timerDonePreview').textContent = `【${subject}】 ${content}（${recordedMinutes}分）`;
+
+      const doneModal = document.getElementById('timerDoneModal');
+      doneModal.dataset.minutes = String(recordedMinutes);
+      doneModal.dataset.subject = subject;
+      doneModal.dataset.content = content;
+      doneModal.dataset.materialId = mat ? mat.id : '';
+      doneModal.classList.remove('hidden');
+    }
+
+    function cancelAndCloseAppViewer() {
+      closeAppViewerShell();
+      showToast('アプリを閉じました', 'info');
+    }
+
+    function closeAppViewerShell() {
+      appViewerActive = false;
+      if (appViewerIntervalId) {
+        clearInterval(appViewerIntervalId);
+        appViewerIntervalId = null;
+      }
+      releaseWakeLock();
+      document.getElementById('appViewerOverlay').classList.add('hidden');
+      document.getElementById('appViewerFrame').src = 'about:blank';
+      appViewerMaterial = null;
+      appViewerLinkedTaskId = null;
+    }
+
+    function launchSelectedTimerApp() {
+      const matEl = document.getElementById('timerMaterialSelect');
+      if (!matEl || !matEl.value || matEl.value === '__custom__') return;
+      const matId = matEl.value;
+      const linkedTask = timerLinkedTaskId;
+      requestCloseStudyTimer();
+      launchWebAppWithTimer(matId, linkedTask);
     }
 
     function getSimDateObj() {
@@ -3756,6 +4020,9 @@
     }
 
     function cloneDefaultPlanItems(courseId = 'standard') {
+      if (remotePlanTemplates && Array.isArray(remotePlanTemplates[courseId]) && remotePlanTemplates[courseId].length > 0) {
+        return remotePlanTemplates[courseId].map(item => ({ ...item }));
+      }
       const course = PLAN_COURSES[courseId] || PLAN_COURSES.standard;
       return course.items.map(item => ({ ...item }));
     }
@@ -4073,6 +4340,10 @@
           const userName = resp.name || studentId;
           currentUser = { studentId, password, name: userName };
 
+          if (resp.planTemplates && typeof resp.planTemplates === 'object') {
+            remotePlanTemplates = resp.planTemplates;
+          }
+
           if (resp.data && typeof resp.data === 'object') {
             state = normalizeUserState(resp.data, userName);
           } else {
@@ -4158,6 +4429,9 @@
           studentId: currentUser.studentId,
           password: currentUser.password
         });
+        if (resp.planTemplates && typeof resp.planTemplates === 'object') {
+          remotePlanTemplates = resp.planTemplates;
+        }
         if (resp.data && typeof resp.data === 'object') {
           state = normalizeUserState(resp.data, currentUser.name);
         }
@@ -4765,9 +5039,12 @@
         okBtn.textContent = '削除する';
       } else if (type === 'planCourse') {
         const courseName = (PLAN_COURSES[id] && PLAN_COURSES[id].label) || '選択したコース';
-        titleEl.textContent = `「${courseName}」に切り替えますか？`;
-        descEl.textContent = '現在の年間チャートが選択したコースの推奨スケジュールに入れ替わります（あとから教材の差し替えや編集もできます）。';
-        okBtn.textContent = '切り替える';
+        const isSame = state.planCourse === id;
+        titleEl.textContent = isSame
+          ? `「${courseName}」を最新の標準プランに戻しますか？`
+          : `「${courseName}」に切り替えますか？`;
+        descEl.textContent = '現在の年間チャートが塾の標準スケジュールに入れ替わります（入れ替え後も教材の追加・削除・編集は自由にできます）。';
+        okBtn.textContent = isSame ? '標準プランに戻す' : '切り替える';
       } else if (type === 'planItem') {
         titleEl.textContent = '年間チャートから削除しますか？';
         descEl.textContent = 'この教材の予定と進捗を年間チャートから削除します。';
@@ -4830,6 +5107,7 @@
         }
       } else if (type === 'planItem') {
         state.yearlyPlan = (state.yearlyPlan || []).filter(p => p.id !== id);
+        closePlanModal();
         closePlanEditModal();
         renderAll();
         showToast('年間チャートから教材を削除しました', 'info');
@@ -4860,8 +5138,20 @@
     function handleTimerMaterialChange() {
       const matEl = document.getElementById('timerMaterialSelect');
       const customEl = document.getElementById('timerContentInput');
+      const appBtn = document.getElementById('timerLaunchAppBtn');
       if (!matEl || !customEl) return;
       customEl.classList.toggle('hidden', matEl.value !== '__custom__');
+
+      if (appBtn) {
+        const mat = matEl.value && matEl.value !== '__custom__'
+          ? getAllMaterials().find(m => m.id === matEl.value)
+          : null;
+        const canLaunch = !!(mat && !mat.isMine && buildAppLaunchUrl(mat.url));
+        appBtn.classList.toggle('hidden', !canLaunch);
+        if (canLaunch) {
+          appBtn.textContent = `🚀「${mat.title}」を開いて計測スタート`;
+        }
+      }
     }
 
     function getTimerResolvedStudyItem() {
@@ -4893,7 +5183,7 @@
       }
 
       timerStatus = 'idle';
-      timerMode = 'countdown';
+      timerMode = (preset && preset.mode === 'stopwatch') ? 'stopwatch' : 'countdown';
       timerLinkedTaskId = preset && preset.taskId ? preset.taskId : null;
 
       const subEl = document.getElementById('timerSubjectSelect');
@@ -4941,6 +5231,10 @@
 
       document.getElementById('studyTimerOverlay').classList.remove('hidden');
       updateTimerUI();
+
+      if (preset && preset.autoStart) {
+        startStudyTimer();
+      }
     }
 
     function requestCloseStudyTimer() {
@@ -5015,24 +5309,36 @@
       updateTimerUI();
 
       timerIntervalId = setInterval(() => {
-        const now = Date.now();
-        const deltaSec = Math.floor((now - timerLastTickMs) / 1000);
-        if (deltaSec < 1) return;
-        timerLastTickMs += deltaSec * 1000;
-
-        if (timerMode === 'countdown') {
-          timerRemainingSeconds = Math.max(0, timerRemainingSeconds - deltaSec);
-          timerElapsedSeconds = timerTargetSeconds - timerRemainingSeconds;
-          if (timerRemainingSeconds === 0) {
-            onCountdownCompleted();
-            return;
-          }
-        } else {
-          timerElapsedSeconds += deltaSec;
-        }
-        updateTimerUI();
+        syncTimerElapsedNow();
       }, 250);
     }
+
+    function syncTimerElapsedNow() {
+      if (timerStatus !== 'running') return;
+      const now = Date.now();
+      const deltaSec = Math.floor((now - timerLastTickMs) / 1000);
+      if (deltaSec < 1) return;
+      timerLastTickMs += deltaSec * 1000;
+
+      if (timerMode === 'countdown') {
+        timerRemainingSeconds = Math.max(0, timerRemainingSeconds - deltaSec);
+        timerElapsedSeconds = timerTargetSeconds - timerRemainingSeconds;
+        if (timerRemainingSeconds === 0) {
+          onCountdownCompleted();
+          return;
+        }
+      } else {
+        timerElapsedSeconds += deltaSec;
+      }
+      updateTimerUI();
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && timerStatus === 'running') {
+        syncTimerElapsedNow();
+        acquireWakeLock();
+      }
+    });
 
     function pauseStudyTimer() {
       if (timerIntervalId) {
@@ -5176,7 +5482,9 @@
       if (timerStatus === 'idle') {
         statusEl.textContent = 'スタートを押して集中しよう！';
       } else if (timerStatus === 'running') {
-        statusEl.textContent = '🔥 集中タイム計測中... スマホを置いて取り組もう！';
+        statusEl.textContent = timerMode === 'stopwatch'
+          ? '🔥 計測中！アプリが終わったら「✅ 終了して記録」を押そう'
+          : '🔥 集中タイム計測中... スマホを置いて取り組もう！';
       } else if (timerStatus === 'paused') {
         statusEl.textContent = '⏸ 一時停止中';
       } else if (timerStatus === 'alarm') {
@@ -5471,7 +5779,7 @@
         const launchUrl = buildAppLaunchUrl(app.url);
         if (launchUrl) {
           return `
-            <a href="${escapeHtml(launchUrl)}" target="_blank" rel="noopener noreferrer" class="app-quick-card">
+            <button type="button" class="app-quick-card" style="text-align:left;" onclick="launchWebAppWithTimer('${escapeHtml(app.id)}')">
               <div>
                 <div class="badge-row" style="margin-bottom:5px;">
                   <span class="badge ${subCls}">${escapeHtml(app.subject)}</span>
@@ -5479,8 +5787,8 @@
                 </div>
                 <p class="app-quick-title">${escapeHtml(app.title)}</p>
               </div>
-              <span class="app-quick-cta">🚀 アプリを開く</span>
-            </a>
+              <span class="app-quick-cta">🚀 開く（⏱️ 自動計測）</span>
+            </button>
           `;
         }
         return `
@@ -5540,9 +5848,9 @@
                 ⏱️ 勉強する
               </button>
               ${launchUrl ? `
-                <a href="${escapeHtml(launchUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-sky btn-sm">
+                <button type="button" class="btn btn-sky btn-sm" onclick="launchWebAppWithTimer('${escapeHtml(linkedMat.id)}')">
                   🚀 アプリを開く
-                </a>
+                </button>
               ` : ''}
               <button type="button" class="btn btn-outline btn-sm" onclick="snoozeReview('${escapeHtml(rec.id)}')">
                 明日へ
@@ -5606,9 +5914,9 @@
                 ⏱️ 勉強する
               </button>
               ${launchUrl ? `
-                <a href="${escapeHtml(launchUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-sky btn-sm">
+                <button type="button" class="btn btn-sky btn-sm" onclick="launchWebAppWithTimer('${escapeHtml(linkedMat.id)}', '${escapeHtml(task.id)}')">
                   🚀 アプリを開く
-                </a>
+                </button>
               ` : ''}
             </div>
           </article>
@@ -5678,9 +5986,9 @@
             <p class="item-desc">${escapeHtml(m.point)}</p>
             <div class="card-actions">
               ${launchUrl ? `
-                <a href="${escapeHtml(launchUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-blue btn-grow">
-                  🚀 アプリを開く
-                </a>
+                <button type="button" class="btn btn-blue btn-grow" onclick="launchWebAppWithTimer('${escapeHtml(m.id)}')">
+                  🚀 開く（⏱️ 自動計測）
+                </button>
               ` : (m.type === 'Webアプリ' ? `
                 <span class="badge badge-overdue" style="padding:8px 10px;">⚠️ URL未設定（シートのG列を確認）</span>
               ` : '')}
@@ -5737,10 +6045,6 @@
 
     function requestSwitchPlanCourse(courseId) {
       if (!PLAN_COURSES[courseId]) return;
-      if (state.planCourse === courseId) {
-        showToast(`すでに「${PLAN_COURSES[courseId].label}」が選択されています`, 'info');
-        return;
-      }
       openConfirmModal('planCourse', courseId);
     }
 
@@ -5962,6 +6266,11 @@
       const id = activePlanItemId;
       closePlanModal();
       if (id) openPlanEditModal(id);
+    }
+
+    function requestDeleteFromPlanModal() {
+      if (!activePlanItemId) return;
+      openConfirmModal('planItem', activePlanItemId);
     }
 
     function openPlanEditModal(itemId = null) {
