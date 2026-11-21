@@ -2797,7 +2797,7 @@
         <div class="header-row-top">
           <div class="brand">
             <div class="brand-icon" aria-hidden="true">📘</div>
-            <h1 class="brand-title">スタディ・リマインド <span style="font-size:10px; font-weight:800; color:var(--blue); background:var(--blue-soft); padding:2px 6px; border-radius:999px; vertical-align:middle;">v2.6</span></h1>
+            <h1 class="brand-title">スタディ・リマインド <span style="font-size:10px; font-weight:800; color:var(--blue); background:var(--blue-soft); padding:2px 6px; border-radius:999px; vertical-align:middle;">v2.7</span></h1>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
             <div class="clear-counter" style="background:var(--blue-soft); border-color:var(--blue-border); color:var(--blue);" title="今日の合計勉強時間">
@@ -2812,6 +2812,7 @@
         <div class="header-user-bar">
           <div class="user-left">
             <span class="user-name-pill">👤 <span id="headerUserName">---</span> さん</span>
+            <span id="headerUserGrade" class="badge badge-step hidden"></span>
             <span id="syncStatusBadge" class="sync-badge demo">🧪 デモモード</span>
           </div>
           <div class="user-actions">
@@ -3655,8 +3656,8 @@
      * デモモード用アカウント一覧（GAS_API_URL が空のときに使用）
      */
     const DEMO_ACCOUNTS = {
-      '1001': { password: '1234', name: '山田 太郎' },
-      '1002': { password: '5678', name: '佐藤 花子' }
+      '1001': { password: '1234', name: '山田 太郎', grade: '中1' },
+      '1002': { password: '5678', name: '佐藤 花子', grade: '中3' }
     };
 
     const AUTH_STORAGE_KEY = 'study_remind_auth_v1';
@@ -3672,6 +3673,7 @@
         title: '中1基礎計算アプリ',
         url: 'https://example.com/apps/math-basic-calc',
         point: '正負の数・文字式・一次方程式を毎日3分で反復トレーニング！計算ミスをゼロにしよう。',
+        targetGrade: '中1',
         isMine: false
       },
       {
@@ -3682,6 +3684,7 @@
         title: '英作文トレーニングアプリ',
         url: 'https://example.com/apps/english-writing',
         point: '定期テストや入試で差がつく並べ替え・英作文を反復演習できます。',
+        targetGrade: '全学年',
         isMine: false
       },
       {
@@ -3692,6 +3695,7 @@
         title: '理科の要点まとめ＆一問一答',
         url: '',
         point: '実験の手順やグラフの読み取りなど、テスト頻出の記述ポイントが充実。',
+        targetGrade: '中2,中3',
         isMine: false
       },
       {
@@ -3702,6 +3706,7 @@
         title: '入試頻出・古文＆漢字特訓プリント',
         url: '',
         point: '入試で確実に点を取りたい漢字の読み書き・古文の現代語訳プリント。',
+        targetGrade: '中3',
         isMine: false
       }
     ];
@@ -4390,7 +4395,7 @@
           if (!demo || demo.password !== password) {
             throw new Error('生徒IDまたはパスワードが違います。（デモは 1001 / 1234）');
           }
-          currentUser = { studentId, password, name: demo.name };
+          currentUser = { studentId, password, name: demo.name, grade: demo.grade || '' };
           state = loadLocalUserState(studentId, demo.name);
           saveLocalUserState();
         } else {
@@ -4400,7 +4405,8 @@
             password
           });
           const userName = resp.name || studentId;
-          currentUser = { studentId, password, name: userName };
+          const userGrade = String(resp.grade || '').trim();
+          currentUser = { studentId, password, name: userName, grade: userGrade };
 
           if (resp.planTemplates && typeof resp.planTemplates === 'object') {
             remotePlanTemplates = resp.planTemplates;
@@ -4412,7 +4418,7 @@
             state = loadLocalUserState(studentId, userName);
           }
 
-          if (Array.isArray(resp.sharedMaterials) && resp.sharedMaterials.length > 0) {
+          if (Array.isArray(resp.sharedMaterials)) {
             state.sharedMaterials = resp.sharedMaterials;
           }
           saveLocalUserState();
@@ -4449,6 +4455,15 @@
       document.body.classList.add('app-active');
 
       document.getElementById('headerUserName').textContent = currentUser.name;
+      const gradeBadge = document.getElementById('headerUserGrade');
+      if (gradeBadge) {
+        if (currentUser.grade) {
+          gradeBadge.textContent = currentUser.grade;
+          gradeBadge.classList.remove('hidden');
+        } else {
+          gradeBadge.classList.add('hidden');
+        }
+      }
       setSyncStatus(isDemoMode() ? 'demo' : 'synced');
 
       const simToday = getSimDateObj();
@@ -4494,10 +4509,22 @@
         if (resp.planTemplates && typeof resp.planTemplates === 'object') {
           remotePlanTemplates = resp.planTemplates;
         }
+        if (typeof resp.grade === 'string') {
+          currentUser.grade = resp.grade.trim();
+          const gradeBadge = document.getElementById('headerUserGrade');
+          if (gradeBadge) {
+            if (currentUser.grade) {
+              gradeBadge.textContent = currentUser.grade;
+              gradeBadge.classList.remove('hidden');
+            } else {
+              gradeBadge.classList.add('hidden');
+            }
+          }
+        }
         if (resp.data && typeof resp.data === 'object') {
           state = normalizeUserState(resp.data, currentUser.name);
         }
-        if (Array.isArray(resp.sharedMaterials) && resp.sharedMaterials.length > 0) {
+        if (Array.isArray(resp.sharedMaterials)) {
           state.sharedMaterials = resp.sharedMaterials;
         }
         saveLocalUserState();
@@ -6030,6 +6057,9 @@
         const typeIcon = m.type === 'Webアプリ' ? '📱' : (m.type === 'プリント' ? '📄' : '📘');
         const lvlCls = m.level === '基礎' ? 'lvl-basic' : (m.level === '応用' ? 'lvl-adv' : 'lvl-std');
         const launchUrl = !m.isMine ? buildAppLaunchUrl(m.url) : '';
+        const targetGradeBadge = (!m.isMine && m.targetGrade && m.targetGrade !== '全学年')
+          ? `<span class="badge badge-step">${escapeHtml(m.targetGrade)}</span>`
+          : '';
 
         return `
           <article class="item-card">
@@ -6038,6 +6068,7 @@
                 <span class="badge ${typeCls}">${typeIcon} ${escapeHtml(m.type)}</span>
                 <span class="badge ${subCls}">${escapeHtml(m.subject)}</span>
                 <span class="badge ${lvlCls}">${escapeHtml(m.level)}</span>
+                ${targetGradeBadge}
                 ${m.isMine
                   ? '<span class="badge badge-mine">👤 マイ教材</span>'
                   : '<span class="badge badge-host">🏫 塾おすすめ</span>'}
