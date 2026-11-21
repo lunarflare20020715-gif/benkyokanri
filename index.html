@@ -1518,27 +1518,34 @@
     /* アプリ内Webアプリビューア（戻れない問題解消＆ストップウォッチ自動連動） */
     .app-viewer-overlay {
       position: fixed;
-      inset: 0;
-      z-index: 80;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 9999;
       background: #0f172a;
       display: flex;
       flex-direction: column;
       width: 100%;
       height: 100vh;
       height: 100dvh;
+      overflow: hidden;
     }
 
     .app-viewer-bar {
+      position: relative;
+      z-index: 10;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      padding: 8px 12px;
+      gap: 6px;
+      padding: 8px 10px;
       padding-top: calc(8px + env(safe-area-inset-top, 0px));
       background: linear-gradient(90deg, #1e293b 0%, #0f766e 100%);
       color: #ffffff;
       border-bottom: 1px solid rgba(255, 255, 255, 0.15);
       flex-shrink: 0;
+      min-height: 52px;
     }
 
     .app-viewer-back-btn {
@@ -1549,6 +1556,7 @@
       font-size: 12.5px;
       font-weight: 800;
       white-space: nowrap;
+      flex-shrink: 0;
       box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
     }
 
@@ -1559,14 +1567,14 @@
     .app-viewer-meta {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       min-width: 0;
       flex: 1;
       justify-content: center;
     }
 
     .app-viewer-title {
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 800;
       color: #f8fafc;
       white-space: nowrap;
@@ -1574,8 +1582,14 @@
       text-overflow: ellipsis;
     }
 
+    @media (max-width: 460px) {
+      .app-viewer-title {
+        display: none;
+      }
+    }
+
     .app-viewer-clock {
-      padding: 3px 9px;
+      padding: 4px 9px;
       border-radius: var(--radius-full);
       background: rgba(15, 23, 42, 0.55);
       border: 1px solid rgba(255, 255, 255, 0.25);
@@ -1617,9 +1631,21 @@
       justify-content: center;
     }
 
-    .app-viewer-iframe {
-      flex: 1;
+    .app-viewer-body {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
       width: 100%;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .app-viewer-iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       border: none;
       background: #ffffff;
     }
@@ -3421,47 +3447,8 @@
         <button type="button" class="app-viewer-cancel-btn" onclick="cancelAndCloseAppViewer()" title="記録せず閉じる">✕</button>
       </div>
     </div>
-    <iframe id="appViewerFrame" class="app-viewer-iframe" src="about:blank" allow="autoplay; clipboard-write" title="勉強アプリ画面"></iframe>
-  </div>
-
-  <!-- ==================== モーダル5：勉強モード終了後の記録＆理解度選択 ==================== -->
-  <div id="timerDoneModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="timerDoneTitle">
-    <div class="modal-box">
-      <h3 id="timerDoneTitle" class="modal-title">🎉 おつかれさま！</h3>
-      <p id="timerDoneSummary" class="modal-desc"></p>
-      <div id="timerDonePreview" class="modal-preview"></div>
-
-      <p style="margin:0 0 8px; font-size:12px; font-weight:800; color:var(--text-muted);">
-        理解度を選ぶと、カレンダー記録＋自動復習予約がまとめて完了します：
-      </p>
-      <div class="eval-stack">
-        <button type="button" class="eval-big-btn tri" onclick="saveTimerSession('△')">
-          <span class="eval-symbol">△</span>
-          <div>
-            <span class="eval-name">あやしい</span>
-            <span class="eval-sub">カレンダーに記録 ＋ 1・3・7日後に復習</span>
-          </div>
-        </button>
-        <button type="button" class="eval-big-btn cir" onclick="saveTimerSession('○')">
-          <span class="eval-symbol">○</span>
-          <div>
-            <span class="eval-name">だいたいOK</span>
-            <span class="eval-sub">カレンダーに記録 ＋ 3・7日後に復習</span>
-          </div>
-        </button>
-        <button type="button" class="eval-big-btn dbl" onclick="saveTimerSession('◎')">
-          <span class="eval-symbol">◎</span>
-          <div>
-            <span class="eval-name">完璧！</span>
-            <span class="eval-sub">カレンダーに記録（復習なし）</span>
-          </div>
-        </button>
-      </div>
-
-      <div class="modal-footer" style="justify-content: space-between;">
-        <button type="button" class="btn btn-outline btn-sm" onclick="saveTimerSession(null)">時間だけカレンダーに記録</button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="closeTimerDoneModal()">記録せず閉じる</button>
-      </div>
+    <div class="app-viewer-body">
+      <iframe id="appViewerFrame" class="app-viewer-iframe" src="about:blank" allow="autoplay; clipboard-write" title="勉強アプリ画面"></iframe>
     </div>
   </div>
 
@@ -3903,6 +3890,7 @@
       document.getElementById('appViewerExtLink').href = launchUrl;
       document.getElementById('appViewerFrame').src = launchUrl;
       document.getElementById('appViewerOverlay').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
 
       acquireWakeLock();
 
@@ -3953,6 +3941,7 @@
       releaseWakeLock();
       document.getElementById('appViewerOverlay').classList.add('hidden');
       document.getElementById('appViewerFrame').src = 'about:blank';
+      document.body.style.overflow = '';
       appViewerMaterial = null;
       appViewerLinkedTaskId = null;
     }
