@@ -433,7 +433,6 @@
     .app-viewer-cancel-btn { width: 32px; height: 32px; border-radius: 8px; background: rgba(255, 255, 255, 0.14); color: #f8fafc; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
     .app-viewer-body { position: fixed; top: calc(56px + env(safe-area-inset-top, 0px)); left: 0; right: 0; bottom: 0; width: 100%; overflow: hidden; -webkit-overflow-scrolling: touch; background: #ffffff; }
     .app-viewer-iframe { position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: none; background: #ffffff; }
-    .app-viewer-float-back { position: fixed; right: 14px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 2147483647; display: inline-flex; align-items: center; gap: 6px; padding: 11px 16px; border-radius: 9999px; background: linear-gradient(135deg, #059669, #0d9488); color: #ffffff; font-size: 13px; font-weight: 800; border: 2px solid rgba(255, 255, 255, 0.85); box-shadow: 0 8px 24px rgba(15, 23, 42, 0.4); font-variant-numeric: tabular-nums; }
 
     .timer-overlay { position: fixed; inset: 0; z-index: 65; background: linear-gradient(165deg, #0f172a 0%, #1e293b 55%, #134e4a 100%); color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
     .timer-shell { width: 100%; max-width: 460px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16); backdrop-filter: blur(12px); border-radius: 28px; padding: 22px 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35); }
@@ -549,6 +548,7 @@
     .course-btn.active.c-standard { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); }
     .course-btn.active.c-advanced { background: var(--rose-soft); border-color: var(--rose); color: var(--rose); }
     .course-desc-box { font-size: 11.5px; font-weight: 700; color: var(--text-muted); background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px; margin-bottom: 10px; }
+    .course-warn-note { font-size: 11px; font-weight: 700; color: var(--rose); margin: -4px 0 10px; }
     .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
     .achieve-hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
@@ -578,8 +578,6 @@
     .mat-achieve-name { margin: 0; font-size: 14px; font-weight: 800; color: var(--text-main); line-height: 1.35; }
     .mat-achieve-stats { display: flex; flex-wrap: wrap; gap: 6px; }
     .mat-stat-chip { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 8px; background: var(--bg-subtle); border: 1px solid var(--border); font-size: 11px; font-weight: 700; color: var(--text-main); }
-    .mat-range-row { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
-    .mat-range-tag { padding: 2px 7px; border-radius: 6px; background: var(--blue-soft); color: var(--blue); font-size: 10.5px; font-weight: 700; }
 
     @keyframes fadeSlideUp {
       from { opacity: 0; transform: translateY(8px); }
@@ -676,7 +674,7 @@
         <div class="header-row-top">
           <div class="brand">
             <div class="brand-icon" aria-hidden="true">📘</div>
-            <h1 class="brand-title">スタディ・リマインド <span style="font-size:10px; font-weight:800; color:var(--blue); background:var(--blue-soft); padding:2px 6px; border-radius:999px; vertical-align:middle;">v2.9</span></h1>
+            <h1 class="brand-title">スタディ・リマインド <span style="font-size:10px; font-weight:800; color:var(--blue); background:var(--blue-soft); padding:2px 6px; border-radius:999px; vertical-align:middle;">v3.0</span></h1>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
             <div class="clear-counter" style="background:var(--blue-soft); border-color:var(--blue-border); color:var(--blue);">
@@ -890,6 +888,7 @@
               <button type="button" id="courseBtnStandard" class="course-btn c-standard active" onclick="requestSwitchPlanCourse('standard')">📘 標準タイプ</button>
               <button type="button" id="courseBtnAdvanced" class="course-btn c-advanced" onclick="requestSwitchPlanCourse('advanced')">🚀 進学タイプ</button>
             </div>
+            <p class="course-warn-note">※別のコースに切り替えると、現在のチャートの進捗はリセットされます。</p>
             <div id="courseDescBox" class="course-desc-box"></div>
 
             <div class="filter-box" style="margin-bottom: 10px;">
@@ -1026,7 +1025,8 @@
 
           <div id="historyListContainer" class="card-list"></div>
 
-          <div id="resetArea" class="reset-area">
+          <!-- 本番モード（IS_PRODUCTION = true）では誤操作防止のため自動で非表示 -->
+          <div id="resetArea" class="reset-area hidden">
             <button type="button" class="btn btn-outline btn-sm" onclick="openConfirmModal('reset')">
               🔄 このアカウントをサンプルデータにリセット
             </button>
@@ -1207,13 +1207,13 @@
       </div>
 
       <div class="timer-test-row">
-        <span>※終了時にチャイム音＆バイブが鳴ります</span>
+        <span>※画面をつけたまま・マナーモード解除で音が鳴ります</span>
         <button type="button" class="timer-mini-link" onclick="startQuickTestTimer()">10秒テスト</button>
       </div>
     </div>
   </div>
 
-  <!-- アプリ内Webアプリビューア -->
+  <!-- アプリ内Webアプリビューア（右下の重なり防止のため上部バーの戻るボタンに一本化） -->
   <div id="appViewerOverlay" class="app-viewer-overlay hidden" role="dialog" aria-modal="true">
     <div class="app-viewer-bar">
       <button type="button" class="app-viewer-back-btn" onclick="finishAndCloseAppViewer()">⬅️ 戻って記録</button>
@@ -1229,9 +1229,6 @@
     <div class="app-viewer-body">
       <iframe id="appViewerFrame" class="app-viewer-iframe" src="about:blank" allow="autoplay; clipboard-write" title="勉強アプリ画面"></iframe>
     </div>
-    <button type="button" id="appViewerFloatBackBtn" class="app-viewer-float-back" onclick="finishAndCloseAppViewer()">
-      ⬅️ 戻って記録 <span id="appViewerFloatClock">00:00</span>
-    </button>
   </div>
 
   <!-- 勉強終了後の記録モーダル -->
@@ -1362,6 +1359,7 @@
        ========================================================================= */
     const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzMqwIPbCZ7_ebtBnLmyRFWhzJa3Wf1-Kwyk4IeMNYDbELY9ytUHEjTSMP-VMsdgjTT/exec';
     const IS_PRODUCTION = true;
+    const MAX_SESSION_MINUTES = 90; // 放置による極端な時間計測を防ぐ1回あたりの上限（分）
 
     const DEMO_ACCOUNTS = {
       '1001': { password: '1234', name: '山田 太郎', grade: '中1' },
@@ -1483,6 +1481,8 @@
     let sharedMaterialsFromServer = null;
     let planTemplatesFromServer = null;
     let saveDebounceTimer = null;
+    let isSavingInFlight = false;
+    let lastCloudSyncMs = 0;
 
     let simOffsetDays = 0;
     let isSimOpen = false;
@@ -1791,6 +1791,7 @@
             const localRaw = localStorage.getItem(USER_DATA_PREFIX + studentId);
             state = normalizeState(localRaw ? JSON.parse(localRaw) : null);
           }
+          lastCloudSyncMs = Date.now();
         }
 
         if (remember) {
@@ -1817,6 +1818,10 @@
 
       const simWrap = document.getElementById('simWrapper');
       if (simWrap) simWrap.classList.toggle('hidden', IS_PRODUCTION);
+
+      // 本番モード（IS_PRODUCTION = true）では誤操作防止のためリセットボタンを隠す
+      const resetArea = document.getElementById('resetArea');
+      if (resetArea) resetArea.classList.toggle('hidden', IS_PRODUCTION);
 
       document.getElementById('headerUserName').textContent = currentUser.name;
       const gradeBadge = document.getElementById('headerUserGrade');
@@ -1867,6 +1872,7 @@
       setSyncStatus('saving');
       if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
       saveDebounceTimer = setTimeout(async () => {
+        isSavingInFlight = true;
         try {
           const res = await callGasApi({
             action: 'save',
@@ -1874,11 +1880,51 @@
             password: currentUser.password,
             data: state
           });
-          setSyncStatus(res && res.ok ? 'synced' : 'offline');
+          if (res && res.ok) {
+            lastCloudSyncMs = Date.now();
+            setSyncStatus('synced');
+          } else {
+            setSyncStatus('offline');
+          }
         } catch (e) {
           setSyncStatus('offline');
+        } finally {
+          isSavingInFlight = false;
+          saveDebounceTimer = null;
         }
       }, 600);
+    }
+
+    async function syncFromCloudSilently() {
+      if (!currentUser || isDemoMode()) return;
+      if (saveDebounceTimer || isSavingInFlight) return;
+      if (appViewerActive || timerRunning) return;
+      if (Date.now() - lastCloudSyncMs < 15000) return;
+
+      try {
+        const res = await callGasApi({
+          action: 'login',
+          studentId: currentUser.studentId,
+          password: currentUser.password
+        });
+        if (res && res.ok) {
+          currentUser.name = res.name || currentUser.name;
+          currentUser.grade = res.grade || '';
+          if (Array.isArray(res.sharedMaterials) && res.sharedMaterials.length > 0) {
+            sharedMaterialsFromServer = res.sharedMaterials;
+          }
+          if (res.planTemplates) planTemplatesFromServer = res.planTemplates;
+          if (res.data) {
+            state = normalizeState(res.data);
+            try {
+              localStorage.setItem(USER_DATA_PREFIX + currentUser.studentId, JSON.stringify(state));
+            } catch (e) {}
+          }
+          lastCloudSyncMs = Date.now();
+          setSyncStatus('synced');
+          renderAll();
+        }
+      } catch (e) {}
     }
 
     async function handleManualReload() {
@@ -1901,6 +1947,7 @@
           if (Array.isArray(res.sharedMaterials)) sharedMaterialsFromServer = res.sharedMaterials;
           if (res.planTemplates) planTemplatesFromServer = res.planTemplates;
           if (res.data) state = normalizeState(res.data);
+          lastCloudSyncMs = Date.now();
           enterApp();
           showToast('最新データを読み込みました', 'success');
         } else {
@@ -2096,7 +2143,10 @@
                 <span class="badge badge-rating">理解度: ${escapeHtml(r.rating)}</span>
                 ${overdue ? '<span class="badge badge-overdue">期限超過</span>' : ''}
               </div>
-              <span class="meta-date">予定: ${escapeHtml(r.nextReviewDate)}</span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="meta-date">予定: ${escapeHtml(r.nextReviewDate)}</span>
+                <button type="button" class="btn-icon-danger" title="この復習をスキップ・削除" onclick="requestSkipReview('${escapeHtml(r.id)}')">🗑️</button>
+              </div>
             </div>
             <p class="item-title">${escapeHtml(r.content)}</p>
             <div class="card-actions">
@@ -2106,6 +2156,16 @@
           </div>
         `;
       }).join('');
+    }
+
+    function requestSkipReview(id) {
+      const r = (state.reviews || []).find(item => item.id === id);
+      if (!r) return;
+      pendingConfirmAction = { type: 'skipReview', reviewId: id };
+      document.getElementById('confirmModalTitle').textContent = 'この復習をリストから外しますか？';
+      document.getElementById('confirmModalDesc').textContent = `「${r.content}」の今後の復習予定を終了（スキップ）にします。`;
+      document.getElementById('confirmModalOkBtn').textContent = 'リストから外す';
+      document.getElementById('confirmModal').classList.remove('hidden');
     }
 
     function completeReviewStep(id) {
@@ -2522,7 +2582,7 @@
       pendingConfirmAction = { type: 'switchCourse', courseId };
       const c = PLAN_COURSES[courseId] || PLAN_COURSES.standard;
       document.getElementById('confirmModalTitle').textContent = `${c.label} に切り替えますか？`;
-      document.getElementById('confirmModalDesc').textContent = '現在の受験勉強チャートが、選んだコースのデフォルト参考書リストにリセットされます。';
+      document.getElementById('confirmModalDesc').textContent = '現在の受験勉強チャートの進捗がリセットされ、選んだコースの参考書リストに切り替わります。';
       document.getElementById('confirmModalOkBtn').textContent = '切り替える';
       document.getElementById('confirmModal').classList.remove('hidden');
     }
@@ -2823,7 +2883,6 @@
       document.getElementById('appViewerTitle').textContent = app.title;
       document.getElementById('appViewerExtLink').href = launchUrl;
       document.getElementById('appViewerClock').textContent = '⏱️ 00:00';
-      document.getElementById('appViewerFloatClock').textContent = '00:00';
       document.getElementById('appViewerFrame').src = launchUrl;
       document.getElementById('appViewerOverlay').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
@@ -2831,9 +2890,7 @@
       if (appViewerInterval) clearInterval(appViewerInterval);
       appViewerInterval = setInterval(() => {
         const sec = Math.floor((Date.now() - appViewerStartMs) / 1000);
-        const txt = formatClock(sec);
-        document.getElementById('appViewerClock').textContent = `⏱️ ${txt}`;
-        document.getElementById('appViewerFloatClock').textContent = txt;
+        document.getElementById('appViewerClock').textContent = `⏱️ ${formatClock(sec)}`;
       }, 1000);
     }
 
@@ -2852,11 +2909,12 @@
 
     function finishAndCloseAppViewer() {
       const sec = Math.max(1, Math.floor((Date.now() - appViewerStartMs) / 1000));
-      const minutes = Math.max(1, Math.round(sec / 60));
+      const rawMinutes = Math.max(1, Math.round(sec / 60));
+      const minutes = Math.min(MAX_SESSION_MINUTES, rawMinutes);
       const app = appViewerApp;
       closeAppViewerDom();
       if (!app) return;
-      openTimerDoneModal(app.subject || 'その他', app.title, minutes, sec);
+      openTimerDoneModal(app.subject || 'その他', app.title, minutes, sec, rawMinutes > MAX_SESSION_MINUTES);
     }
 
     function openStudyTimer() {
@@ -3034,7 +3092,8 @@
       pauseStudyTimer();
       stopAlarmSound();
       const sec = Math.max(1, Math.floor(timerElapsedSec));
-      const minutes = Math.max(1, Math.round(sec / 60));
+      const rawMinutes = Math.max(1, Math.round(sec / 60));
+      const minutes = Math.min(MAX_SESSION_MINUTES, rawMinutes);
       const subject = document.getElementById('timerSubjectSelect').value;
       const sel = document.getElementById('timerMaterialSelect');
       let title = '';
@@ -3049,7 +3108,7 @@
 
       resetStudyTimer();
       document.getElementById('studyTimerOverlay').classList.add('hidden');
-      openTimerDoneModal(subject, content, minutes, sec);
+      openTimerDoneModal(subject, content, minutes, sec, rawMinutes > MAX_SESSION_MINUTES);
     }
 
     function requestCloseStudyTimer() {
@@ -3083,9 +3142,10 @@
       document.getElementById('timerResetBtn').classList.toggle('hidden', timerElapsedSec === 0 || timerRinging);
     }
 
-    function openTimerDoneModal(subject, content, minutes, rawSec) {
+    function openTimerDoneModal(subject, content, minutes, rawSec, wasCapped = false) {
       pendingTimerRecord = { subject, content, minutes };
-      document.getElementById('timerDoneSummary').textContent = `今回の勉強時間：${minutes}分（計測 ${formatClock(rawSec)}）`;
+      const capNote = wasCapped ? `（※1回の記録上限 ${MAX_SESSION_MINUTES}分で調整済み）` : '';
+      document.getElementById('timerDoneSummary').textContent = `今回の勉強時間：${minutes}分（計測 ${formatClock(rawSec)}）${capNote}`;
       document.getElementById('timerDonePreview').textContent = `【${subject}】${content}`;
       document.getElementById('timerDoneModal').classList.remove('hidden');
     }
@@ -3474,6 +3534,22 @@
           saveState();
           renderYearlyGantt();
           showToast('チャートから削除しました', 'info');
+        } else if (act.type === 'skipReview') {
+          const target = (state.reviews || []).find(r => r.id === act.reviewId);
+          if (target) {
+            target.completed = true;
+            target.nextReviewDate = '';
+            saveState();
+            renderAll();
+            showToast('復習リストから外しました', 'info');
+          }
+        }
+      });
+
+      // 別端末での変更を上書きしないよう、画面復帰時にクラウドから静かに最新同期
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          syncFromCloudSilently();
         }
       });
 
